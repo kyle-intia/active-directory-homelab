@@ -65,6 +65,48 @@ Active terminal verification using the Full Distinguished Name lookup to prove a
 ![Distinguished User Name Authentication Terminal Output](images/client-whoami-validation.png)
 
 ### 4. Enterprise Security Baseline Enforcement (Group Policy)
-* Architected custom Group Policy Objects (GPOs) to maintain uniform network-wide workstation baselines.
-* Configured advanced security policies to restrict operational access to administrative tools (e.g., Control Panel, Registry) for non-administrative profiles.
-* Engineered logon scripts to mount targeted, persistent mapped shared enterprise storage paths based on group delegation.
+To establish centralized administrative control and standard environment security, I engineered and deployed custom Group Policy Objects (GPOs) targeted at specific logical boundaries within the `lab.local` domain. 
+
+---
+
+#### Policy A: Restricting Control Panel & Settings Access
+To prevent standard domain users from altering system configurations, modifying network adapters, or installing unauthorized software, I implemented a strict security baseline GPO to block local administrative tools.
+
+*   **Policy Name:** `Restrict_Control_Panel_Access`
+*   **Target Path:** `User Configuration \ Policies \ Administrative Templates \ Control Panel`
+*   **Enforced Setting:** Enabled **"Prohibit access to Control Panel and PC settings"**
+*   **Deployment & Scope:** Rather than enforcing this globally (which would lock out system administrators), the GPO was selectively linked directly to standard department Organizational Units (OUs)—specifically **Finance**, **HR**, **Marketing**, and **Operation**.
+
+##### Group Policy Editor Configuration
+The policy was structured to cleanly disable the Control Panel panel settings across user nodes:
+
+![Control Panel Restrictive Policy Configuration](images/gpo-control-panel-policy.png)
+
+##### Targeted OU Active Directory Linking
+This console layout demonstrates the targeted GPO link deployment across our non-administrative departmental organizational units, isolating administrative accounts from the restriction:
+
+![OU Targeted GPO Linking Map](images/gpo-ou-links-exclusion.png)
+
+---
+
+#### Policy B: Persistent Network Drive Mapping (Group Policy Preferences)
+To automate access to central storage, I configured a Group Policy Preference (GPP) mapping to mount a secure file share during user initialization.
+
+*   **Policy Name:** `Map_Network_Shared_Drive`
+*   **Target Path:** `User Configuration \ Preferences \ Windows Settings \ Drive Maps`
+*   **Configuration Settings:**
+    *   **Action:** `Update` (Ensures the drive is mapped, updated, and re-applied without forcing a complete recreation)
+    *   **Location:** `\\DC-01\CompanyShare`
+    *   **Reconnect:** Enabled (Ensures persistent mapping across user logon sessions)
+    *   **Label As:** `Company Shared Drive`
+    *   **Drive Letter:** Allocated statically to `S:`
+
+##### Drive Map Preference Properties
+This view confirms the exact configuration properties deployed to orchestrate the mapping execution:
+
+![Group Policy Drive Mapping Properties](images/gpo-drive-map-preferences.png)
+
+##### Client-Side Mounting Verification
+Upon running `gpupdate /force` from the client workstation terminal, the user security context refreshed, successfully resolving network pathways to mount the **Company Shared Drive (S:)** seamlessly under File Explorer:
+
+![Windows 11 Mapped Drive Verification](images/win11-mapped-drive-explorer.png)
